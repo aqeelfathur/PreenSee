@@ -82,9 +82,9 @@
                         </div>
                         <input 
                             type="email" 
-                            name="email" 
-                            id="email" 
-                            value="{{ old('email') }}"
+                            name="email_user" 
+                            id="email_user" 
+                            value="{{ old('email_user') }}"
                             class="w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#004680] focus:border-transparent transition-all duration-200 @error('email') border-red-300 @enderror"
                             placeholder="nama@email.com"
                             required

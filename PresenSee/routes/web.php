@@ -1,85 +1,110 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\GuruController;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Guru\GuruController;
 
 /*
 |--------------------------------------------------------------------------
-| DEFAULT REDIRECT
+| Web Routes
 |--------------------------------------------------------------------------
 */
+
+// Redirect root berdasarkan status login
 Route::get('/', function () {
-    $user = Auth::user();
-
-    if ($user && $user->role === 'admin') {
-        return redirect()->route('admin.dashboard');
+    if (auth()->check()) {
+        $user = auth()->user();
+        
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+        
+        if ($user->role === 'guru') {
+            return redirect()->route('guru.dashboard');
+        }
+        
+        // Fallback jika role tidak dikenali
+        auth()->logout();
+        return redirect()->route('login');
     }
-
-    if ($user && $user->role === 'guru') {
-        return redirect()->route('guru.dashboard');
-    }
-
+    
     return redirect()->route('login');
 });
 
 /*
 |--------------------------------------------------------------------------
-| AUTH ROUTES (Tanpa middleware dulu biar aman)
+| Authentication Routes
 |--------------------------------------------------------------------------
 */
+Route::middleware('guest')->group(function () {
+    // Login
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+    
+    // Register
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+});
 
-// Login & Register
-Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
-Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-Route::post('/register', [AuthController::class, 'register']);
-
-// Logout
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+// Logout (harus authenticated)
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 /*
 |--------------------------------------------------------------------------
-| ADMIN ROUTES
+| Admin Routes
 |--------------------------------------------------------------------------
 */
-Route::prefix('admin')
-    ->name('admin.')
-    ->group(function () {
-        Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-        Route::get('/guru', [AdminController::class, 'guru'])->name('guru');
-        Route::get('/siswa', [AdminController::class, 'siswa'])->name('siswa');
-        Route::get('/kelas-jadwal', [AdminController::class, 'kelasJadwal'])->name('kelas-jadwal');
-        Route::get('/laporan', [AdminController::class, 'laporan'])->name('laporan');
-        Route::get('/pengaturan', [AdminController::class, 'pengaturan'])->name('pengaturan');
-    });
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'auth.check:admin'])->group(function () {
+    // Dashboard Admin
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    
+    // Data Guru
+    Route::get('/guru', [AdminController::class, 'guru'])->name('guru');
+    
+    // Data Siswa
+    Route::get('/siswa', [AdminController::class, 'siswa'])->name('siswa');
+    
+    // Kelas & Jadwal
+    Route::get('/kelas-jadwal', [AdminController::class, 'kelasJadwal'])->name('kelas-jadwal');
+    
+    // Laporan
+    Route::get('/laporan', [AdminController::class, 'laporan'])->name('laporan');
+    
+    // Pengaturan
+    Route::get('/pengaturan', [AdminController::class, 'pengaturan'])->name('pengaturan');
+});
 
 /*
 |--------------------------------------------------------------------------
-| GURU ROUTES
+| Guru Routes
 |--------------------------------------------------------------------------
 */
-Route::prefix('guru')
-    ->name('guru.')
-    ->group(function () {
-        Route::get('/dashboard', [GuruController::class, 'dashboard'])->name('dashboard');
-        Route::get('/sesi-presensi', [GuruController::class, 'sesiPresensi'])->name('sesi-presensi');
-        Route::get('/presensi/{id}', [GuruController::class, 'presensiKamera'])->name('presensi-kamera');
-        Route::post('/presensi-kamera/{id}/end', [GuruController::class, 'endPresensi'])->name('presensi-kamera.end');
-        Route::get('/daftar-kelas', [GuruController::class, 'daftarKelas'])->name('daftar-kelas');
-        Route::get('/wali-kelas', [GuruController::class, 'waliKelas'])->name('wali-kelas');
-        Route::get('/pengaturan', [GuruController::class, 'pengaturan'])->name('pengaturan');
-        Route::post('/pengaturan/update-profile', [GuruController::class, 'updateProfile'])->name('pengaturan.update-profile');
-        Route::post('/pengaturan/update-password', [GuruController::class, 'updatePassword'])->name('pengaturan.update-password');
-    });
+Route::prefix('guru')->name('guru.')->middleware(['auth', 'auth.check:guru'])->group(function () {
+    // Dashboard Guru
+    Route::get('/dashboard', [GuruController::class, 'dashboard'])->name('dashboard');
+    
+    // Sesi Presensi
+    Route::get('/sesi-presensi', [GuruController::class, 'sesiPresensi'])->name('sesi-presensi');
+    
+    // Presensi Kamera (Face Recognition)
+    Route::get('/presensi-kamera', [GuruController::class, 'presensiKamera'])->name('presensi-kamera');
+    
+    // Daftar Kelas
+    Route::get('/daftar-kelas', [GuruController::class, 'daftarKelas'])->name('daftar-kelas');
+    
+    // Wali Kelas
+    Route::get('/wali-kelas', [GuruController::class, 'waliKelas'])->name('wali-kelas');
+    
+    // Pengaturan
+    Route::get('/pengaturan', [GuruController::class, 'pengaturan'])->name('pengaturan');
+});
 
 /*
 |--------------------------------------------------------------------------
-| FALLBACK
+| Fallback Route
 |--------------------------------------------------------------------------
 */
 Route::fallback(function () {
-    return redirect('/login');
+    return view('errors.404');
 });
