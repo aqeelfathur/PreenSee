@@ -88,7 +88,11 @@ Route::prefix('guru')->name('guru.')->middleware(['auth', 'auth.check:guru'])->g
     Route::get('/sesi-presensi', [GuruController::class, 'sesiPresensi'])->name('sesi-presensi');
     
     // Presensi Kamera (Face Recognition)
-    Route::get('/presensi-kamera', [GuruController::class, 'presensiKamera'])->name('presensi-kamera');
+    Route::get('/presensi-kamera/{id}', [GuruController::class, 'presensiKamera'])->name('presensi-kamera');
+    Route::post('/presensi-kamera/{id}/simpan', [GuruController::class, 'simpanPresensi'])->name('presensi-kamera.simpan');
+    
+    // Download Laporan Presensi
+    Route::get('/presensi/{id}/download', [GuruController::class, 'downloadPresensi'])->name('presensi.download');
     
     // Daftar Kelas
     Route::get('/daftar-kelas', [GuruController::class, 'daftarKelas'])->name('daftar-kelas');
